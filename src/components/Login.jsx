@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Lock, Mail, HeadphonesIcon } from "lucide-react";
+import { Lock, Mail, HeadphonesIcon, Loader2 } from "lucide-react";
 
 const Login = () => {
   const { bookName } = useParams();
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState({ email: "", password: "" });
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const checkEmailInAPI = async (inputEmail) => {
-    const proxyURL = "https://contractus.co.in/api/customers"; // Proxy endpoint
+    const proxyURL = "https://contractus.co.in/api/customers";
   
     try {
       const response = await fetch(proxyURL);
@@ -19,7 +21,6 @@ const Login = () => {
       }
       const data = await response.json();
   
-      // Check if the email exists in the response
       return data.items.some((item) => item.email === inputEmail);
     } catch (error) {
       console.error("Error while checking email:", error);
@@ -33,31 +34,79 @@ const Login = () => {
 
     // Reset errors
     setError({ email: "", password: "" });
+    setIsSubmitting(true);
 
-    // Validate email using the API
-    const isEmailValid = await checkEmailInAPI(email);
+    try {
+      // Validate email using the API
+      const isEmailValid = await checkEmailInAPI(email);
 
-    if (!isEmailValid) {
-      setError((prev) => ({ ...prev, email: "Email not found in the system" }));
-      return;
+      if (!isEmailValid) {
+        setError((prev) => ({ ...prev, email: "Email not found in the system" }));
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate password
+      if (password !== correctPassword) {
+        setError((prev) => ({ ...prev, password: "Incorrect password" }));
+        setPassword("");
+        setIsSubmitting(false);
+        return;
+      }
+
+      localStorage.setItem("authCode", "pluto_success");
+
+      // Set loading state and navigate to loading screen
+      setIsLoading(true);
+    } catch (error) {
+      console.error("Submission error:", error);
+      setIsSubmitting(false);
     }
-
-    // Validate password
-    if (password !== correctPassword) {
-      setError((prev) => ({ ...prev, password: "Incorrect password" }));
-      setPassword("");
-      return;
-    }
-
-    localStorage.setItem("authCode", "pluto_success");
-
-    // If both validations pass, navigate
-    navigate("/artofconversation");
   };
 
   const handleSupportClick = () => {
     window.location.href = "https://wa.link/i0frpz";
   };
+
+  // Loading screen component
+  const LoadingScreen = () => {
+    const [countdown, setCountdown] = useState(15);
+
+    useEffect(() => {
+      const timer = setInterval(() => {
+        setCountdown((prevCountdown) => {
+          if (prevCountdown <= 1) {
+            clearInterval(timer);
+            navigate("/artofconversation");
+            return 0;
+          }
+          return prevCountdown - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }, [navigate]);
+
+    return (
+      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-50">
+        <div className="text-white text-2xl font-bold mb-4">
+          Audiobook is loading in {countdown} seconds
+        </div>
+        <video 
+          autoPlay 
+          className="max-w-full max-h-[80%]"
+        >
+          <source src="/videos/YT.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    );
+  };
+
+  // Render login form or loading screen
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4 space-y-4">
@@ -102,20 +151,28 @@ const Login = () => {
 
           <button
             type="submit"
-            className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+            disabled={isSubmitting}
+            className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            <Lock className="w-5 h-5" />
-            Log In
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Logging In...
+              </>
+            ) : (
+              <>
+                <Lock className="w-5 h-5" />
+                Log In
+              </>
+            )}
           </button>
         </form>
 
-        {/* OTP Notification */}
         <p className="text-xs text-maroon-600 text-center mt-4" style={{ color: '#800000' }}>
           Password has been sent on your email address from pluto@plutoai.co.in
         </p>
       </div>
 
-      {/* Support Button - Now outside the box, half width, and rounder edges */}
       <button
         onClick={handleSupportClick}
         className="w-1/2 max-w-[200px] bg-blue-600 text-white py-2 rounded-full hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"

@@ -132,6 +132,7 @@ const AudioPlayer = () => {
 
 
 
+
   useEffect(() => {
     const fetchAudiobook = async () => {
       try {
@@ -280,6 +281,55 @@ const AudioPlayer = () => {
         });
     }
   };
+
+
+
+  const progressBarRef = useRef(null);
+
+  const handleSeek = (e) => {
+    if (audioElement && progressBarRef.current) {
+      const progressBar = progressBarRef.current;
+      const rect = progressBar.getBoundingClientRect();
+      const seekPosition = (e.clientX - rect.left) / rect.width;
+      const newTime = seekPosition * duration;
+      
+      audioElement.currentTime = newTime;
+      setCurrentTime(newTime);
+      
+      // Ensure audio is playing after seeking
+      if (!isPlaying) {
+        audioElement.play().catch((e) => {
+          console.error("Failed to play audio after seeking:", e);
+          setError(`Failed to play audio. Error: ${e.message}`);
+        });
+        setIsPlaying(true);
+      }
+    }
+  };
+
+  const handleProgressBarInteraction = (e) => {
+    e.preventDefault();
+    handleSeek(e);
+
+    // Add event listeners for mouse move and mouse up
+    const handleMouseMove = (moveEvent) => {
+      handleSeek(moveEvent);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+
+
+
+
+
 
   const playAfterAnswerAudio = () => {
     if (afterAnswerAudioRef.current) {
@@ -460,7 +510,7 @@ const AudioPlayer = () => {
           </div>
 
           {/* Book Image Section - Adjusted height */}
-          <div className="relative w-full pt-[27vh] ">
+          <div className="relative w-full pt-[30vh] ">
             <div className="absolute inset-0">
               <div
                 className={`absolute inset-0 w-full h-full transition-all duration-300 ${
@@ -530,45 +580,54 @@ const AudioPlayer = () => {
   </div>
 
   <div className="flex items-center mt-6">
-  <span className="text-xs text-gray-500 w-8">
-    {formatTime(currentTime)}
-  </span>
-  <div className="flex-grow mx-2">
-    <div className="h-1 w-full bg-gray-300 rounded-full">
-      <div
-        className="h-1 bg-blue-500 rounded-full"
-        style={{ width: `${(currentTime / duration) * 100}%` }}
-      />
-    </div>
+        <span className="text-xs text-gray-500 w-8">
+          {formatTime(currentTime)}
+        </span>
+        <div 
+          ref={progressBarRef}
+          className="flex-grow mx-2 h-1 bg-gray-300 rounded-full cursor-pointer relative"
+          onMouseDown={handleProgressBarInteraction}
+        >
+          <div
+            className="absolute top-0 left-0 h-1 bg-blue-500 rounded-full"
+            style={{ width: `${(currentTime / duration) * 100}%` }}
+          />
+          <div 
+            className="absolute top-0 left-0 w-4 h-4 bg-white rounded-full shadow-md -ml-2 -mt-1.5 transform transition-transform hover:scale-125"
+            style={{ 
+              left: `${(currentTime / duration) * 100}%`,
+              cursor: 'pointer'
+            }}
+          />
+        </div>
+        <span className="text-xs text-gray-500 w-8 text-right">
+          {formatTime(duration)}
+        </span>
+      </div>
+
+<div className="flex justify-center items-center mb-3 mt-8 gap-20">
+  <div className="flex flex-col items-center">
+    <button
+      onClick={togglePlayPause}
+      className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-3 border-2 border-gray-300"
+    >
+      {isPlaying ? <Pause size={18} fill ="black"/> : <Play size={18} fill ="black"/>}
+    </button>
+    <span className="text-[11px] text-gray-500">Play</span>
   </div>
-  <span className="text-xs text-gray-500 w-8 text-right">
-    {formatTime(duration)}
-  </span>
+
+  <div className="flex flex-col items-center">
+    <button
+      onClick={() =>
+        (window.location.href = "https://www.delphi.ai/pluto/call")
+      }
+      className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-3 border-2 border-gray-300"
+    >
+      <Phone size={18} fill ="black"/>
+    </button>
+    <span className="text-[11px] text-gray-500">Talk & Learn</span>
+  </div>
 </div>
-
-  <div className="flex justify-center items-center mb-3 mt-8 gap-20">
-    <div className="flex flex-col items-center">
-      <button
-        onClick={togglePlayPause}
-        className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-3 border border-gray-200"
-      >
-        {isPlaying ? <Pause size={15} fill ="black"/> : <Play size={15} fill ="black"/>}
-      </button>
-      <span className="text-[10px] text-gray-500">Play</span>
-    </div>
-
-    <div className="flex flex-col items-center">
-      <button
-        onClick={() =>
-          (window.location.href = "https://www.delphi.ai/pluto/call")
-        }
-        className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-3 border border-gray-200"
-      >
-        <Phone size={15} fill ="black"/>
-      </button>
-      <span className="text-[10px] text-gray-500">Talk & Learn</span>
-    </div>
-  </div>
 </div>
 
 
