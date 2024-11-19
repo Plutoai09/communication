@@ -8,7 +8,7 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<AudioPlayer />} />
         <Route path="/update" element={<UpdateForm />} />
         <Route path="/login" element={<Login />} />
         <Route path="/artofconversation" element={<AudioPlayer />} />

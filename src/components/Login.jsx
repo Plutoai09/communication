@@ -70,7 +70,7 @@ const Login = () => {
 
   // Loading screen component
   const LoadingScreen = () => {
-    const [countdown, setCountdown] = useState(15);
+    const [countdown, setCountdown] = useState(18);
 
     useEffect(() => {
       const timer = setInterval(() => {
@@ -96,7 +96,7 @@ const Login = () => {
           autoPlay 
           className="max-w-full max-h-[80%]"
         >
-          <source src="/videos/YT.mp4" type="video/mp4" />
+          <source src="/videos/loading.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
       </div>
