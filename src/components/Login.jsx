@@ -89,14 +89,14 @@ const Login = () => {
 
     return (
       <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-50">
-        <div className="text-white text-2xl font-bold mb-4">
-          Audiobook is loading in {countdown} seconds
-        </div>
+ <div className="text-white text-base font-medium mb-4 text-center">
+  Audiobook is loading in {countdown} seconds
+</div>
         <video 
           autoPlay 
           className="max-w-full max-h-[80%]"
         >
-          <source src="/videos/loading.mp4" type="video/mp4" />
+          <source src="/videos/loadingnew.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
       </div>
