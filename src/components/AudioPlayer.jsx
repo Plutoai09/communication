@@ -619,7 +619,7 @@ const AudioPlayer = () => {
   <div className="flex flex-col items-center">
     <button
       onClick={() =>
-        (window.location.href = "https://www.delphi.ai/pluto/call")
+        (window.location.href = "https://www.plutoai.co.in/interact")
       }
       className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-3 border-2 border-gray-300"
     >
