@@ -70,7 +70,7 @@ const Login = () => {
 
   // Loading screen component
   const LoadingScreen = () => {
-    const [countdown, setCountdown] = useState(18);
+    const [countdown, setCountdown] = useState(21);
 
     useEffect(() => {
       const timer = setInterval(() => {

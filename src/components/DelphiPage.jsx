@@ -14,7 +14,7 @@ const DelphiPage = () => {
         },
         container: {
           width: "100%",
-          height: "85vh",
+          height: "92vh",
         },
       };
     `;
@@ -37,7 +37,7 @@ const DelphiPage = () => {
     <div className="w-full min-h-screen">
       <div 
         id="delphi-container"
-        className="w-full h-[85vh]"
+        className="w-full h-[92vh]"
       />
     </div>
   );
