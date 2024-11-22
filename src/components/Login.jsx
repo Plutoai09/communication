@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Lock, Mail, HeadphonesIcon, Loader2 } from "lucide-react";
+import OnboardingFlow from './OnboardingFlow';
+
 
 const Login = () => {
   const { bookName } = useParams();
@@ -69,43 +71,11 @@ const Login = () => {
   };
 
   // Loading screen component
-  const LoadingScreen = () => {
-    const [countdown, setCountdown] = useState(21);
 
-    useEffect(() => {
-      const timer = setInterval(() => {
-        setCountdown((prevCountdown) => {
-          if (prevCountdown <= 1) {
-            clearInterval(timer);
-            navigate("/artofconversation");
-            return 0;
-          }
-          return prevCountdown - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }, [navigate]);
-
-    return (
-      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-50">
- <div className="text-white text-base font-medium mb-4 text-center">
-  Audiobook is loading in {countdown} seconds
-</div>
-        <video 
-          autoPlay 
-          className="max-w-full max-h-[80%]"
-        >
-          <source src="/videos/loading.mp4" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-      </div>
-    );
-  };
 
   // Render login form or loading screen
   if (isLoading) {
-    return <LoadingScreen />;
+    return <OnboardingFlow />;;
   }
 
   return (

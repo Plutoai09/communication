@@ -104,7 +104,7 @@ const AudioPlayer = () => {
   const afterAnswerAudioRef = useRef(null);
 
   const getFullAudioUrl = (path) => {
-    const baseUrl = "https://contractus.co.in";
+    const baseUrl = "https://contractus.co.in/";
     return `${baseUrl}${path}`;
   };
 
