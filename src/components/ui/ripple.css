@@ -1,19 +1,25 @@
 .onboarding-container {
   min-height: 100vh;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   background-color: #000000;
-  padding: 1rem;
+  padding: 0.5rem;
+  overflow: hidden;
 }
 
 .logo-container {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
 }
 
 .logo {
-  width: 8rem;
+  width: 6rem;
   height: auto;
   position: relative;
   z-index: 2;
@@ -23,8 +29,8 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 8rem;
-  height: 8rem;
+  width: 6rem;
+  height: 6rem;
   border-radius: 50%;
   background-color: rgba(219, 234, 254, 0.5);
   pointer-events: none;
@@ -39,5 +45,26 @@
   100% {
     transform: translate(-50%, -50%) scale(1.5);
     opacity: 0;
+  }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  .onboarding-container {
+    padding: 0.5rem;
+    justify-content: flex-start;
+  }
+
+  .logo-container {
+    margin-bottom: 0.5rem;
+  }
+
+  .logo {
+    width: 5rem;
+  }
+
+  .ripple {
+    width: 5rem;
+    height: 5rem;
   }
 }

@@ -107,24 +107,24 @@ const OnboardingFlow = () => {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-white p-8">
-        <div className="w-full max-w-xl text-center space-y-8">
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">
-            Personalizing Your Learning Journey
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
+        <div className="w-full max-w-xs text-center space-y-4">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            Personalizing Your Journey
           </h2>
-          <p className="text-lg text-gray-600 mb-8">
-            We're crafting custom chapters based on your responses...
+          <p className="text-sm text-gray-600 mb-4">
+            Crafting custom chapters based on your responses...
           </p>
           {/* Loading animation */}
           <div className="flex justify-center space-x-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
           </div>
-          <div className="mt-8 space-y-4">
-            <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-            <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '80%' }}></div>
-            <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: '60%' }}></div>
+          <div className="mt-4 space-y-2">
+            <div className="h-3 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: '80%' }}></div>
+            <div className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: '60%' }}></div>
           </div>
         </div>
       </div>
@@ -133,20 +133,20 @@ const OnboardingFlow = () => {
 
   const getStepTitle = () => {
     switch (step) {
-      case 1: return "Let's start with your name";
-      case 2: return "Tell us about your journey";
-      case 3: return "What's your biggest communication challenge?";
-      case 4: return "How has this affected your life?";
+      case 1: return "Your Name";
+      case 2: return "Your Journey";
+      case 3: return "Communication Challenge";
+      case 4: return "Life Impacts";
       default: return "";
     }
   };
 
   const getStepDescription = () => {
     switch (step) {
-      case 1: return "Answer 4 quick questions for a personalised learning journey";
-      case 2: return "Share your current situation and where you want to be";
-      case 3: return "Understanding your challenges helps us better guide you";
-      case 4: return "Select all areas where you feel communication has held you back";
+      case 1: return "4 quick questions for a personalized learning path";
+      case 2: return "Share your current and desired communication state";
+      case 3: return "What challenges you most?";
+      case 4: return "Select areas where communication has held you back";
       default: return "";
     }
   };
@@ -155,25 +155,25 @@ const OnboardingFlow = () => {
     switch (step) {
       case 1:
         return (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <input
               type="text"
               value={responses.name}
               onChange={(e) => setResponses(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full p-4 text-lg border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all duration-300"
-              placeholder="Type your name here..."
+              className="w-full p-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all duration-300"
+              placeholder="Your name..."
             />
           </div>
         );
 
       case 2:
         return (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <textarea
               value={responses.currentAndNext}
               onChange={(e) => setResponses(prev => ({ ...prev, currentAndNext: e.target.value }))}
-              className="w-full p-4 text-lg border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all duration-300"
-              rows={4}
+              className="w-full p-3 text-base border-2 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none transition-all duration-300"
+              rows={3}
               placeholder="I'm currently... and I want to..."
             />
           </div>
@@ -181,12 +181,12 @@ const OnboardingFlow = () => {
 
       case 3:
         return (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {weaknessOptions.map((option) => (
               <div
                 key={option}
                 onClick={() => setResponses(prev => ({ ...prev, weakness: option }))}
-                className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 ${
+                className={`p-3 border-2 rounded-xl cursor-pointer transition-all duration-300 text-sm ${
                   responses.weakness === option
                     ? 'bg-blue-50 border-blue-500 shadow-md transform scale-[1.02]'
                     : 'hover:bg-gray-50 hover:border-gray-300'
@@ -200,12 +200,12 @@ const OnboardingFlow = () => {
 
       case 4:
         return (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {impactOptions.map((option) => (
               <div
                 key={option}
                 onClick={() => handleImpactToggle(option)}
-                className={`p-4 border-2 rounded-xl cursor-pointer transition-all duration-300 flex justify-between items-center ${
+                className={`p-3 border-2 rounded-xl cursor-pointer transition-all duration-300 flex justify-between items-center text-sm ${
                   responses.impacts.includes(option)
                     ? 'bg-blue-50 border-blue-500 shadow-md transform scale-[1.02]'
                     : 'hover:bg-gray-50 hover:border-gray-300'
@@ -213,7 +213,7 @@ const OnboardingFlow = () => {
               >
                 {option}
                 {responses.impacts.includes(option) && (
-                  <CheckCircle2 className="h-6 w-6 text-blue-500" />
+                  <CheckCircle2 className="h-5 w-5 text-blue-500" />
                 )}
               </div>
             ))}
@@ -235,15 +235,15 @@ const OnboardingFlow = () => {
         )}
       </div>
 
-      <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl">
-        <div className="p-8">
-          <div className="flex justify-center mb-8">
+      <div className="w-full max-w-xs bg-white rounded-2xl shadow-xl">
+        <div className="p-4">
+          <div className="flex justify-center mb-4">
             {[1, 2, 3, 4].map((number) => (
               <div
                 key={number}
-                className={`w-3 h-3 rounded-full mx-1 transition-all duration-300 ${
+                className={`w-2 h-2 rounded-full mx-1 transition-all duration-300 ${
                   number === step
-                    ? 'bg-blue-500 w-6'
+                    ? 'bg-blue-500 w-5'
                     : number < step
                     ? 'bg-green-500'
                     : 'bg-gray-200'
@@ -252,38 +252,38 @@ const OnboardingFlow = () => {
             ))}
           </div>
 
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold mb-2 text-gray-800">
+          <div className="text-center mb-4">
+            <h2 className="text-2xl font-bold mb-1 text-gray-800">
               {getStepTitle()}
             </h2>
-            <p className="text-gray-600">
+            <p className="text-xs text-gray-600">
               {getStepDescription()}
             </p>
           </div>
 
           {renderStep()}
 
-          <div className="flex justify-between mt-8">
+          <div className="flex justify-between mt-4">
             {step > 1 && (
               <button
                 onClick={handleBack}
-                className="flex items-center gap-2 px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors duration-300"
+                className="flex items-center gap-1 px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors duration-300 text-sm"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-4 h-4" />
                 Back
               </button>
             )}
             <button
               onClick={handleNext}
               disabled={!isStepValid()}
-              className={`ml-auto flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+              className={`ml-auto flex items-center gap-1 px-4 py-2 rounded-xl font-medium text-sm transition-all duration-300 ${
                 isStepValid()
                   ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-md hover:shadow-lg transform hover:scale-[1.02]'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >
               {step === 4 ? 'Complete' : 'Next'}
-              <ArrowRight className="w-5 h-5" />
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
