@@ -57,6 +57,7 @@ const Login = () => {
       }
 
       localStorage.setItem("authCode", "pluto_success");
+      localStorage.setItem("plutoemail", email);
 
       // Set loading state and navigate to loading screen
       setIsLoading(true);

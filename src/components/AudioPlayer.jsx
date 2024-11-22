@@ -194,14 +194,35 @@ const AudioPlayer = () => {
 
   useEffect(() => {
     if (audioElement) {
-      const handleEnded = () => {
+      const handleEnded = async () => {
         if (currentChapter < chapters.length - 1) {
+          // Get email from localStorage
+          const email = localStorage.getItem('plutoemail') || 'anonymous';
+          
+          // Send POST request to track chapter transition
+          try {
+            await fetch('https://contractus.co.in/event', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: email,
+                Chapter: currentChapter + 1  // Send the index of the next chapter
+              })
+            });
+            console.log('Chapter transition event logged successfully');
+          } catch (error) {
+            console.error('Failed to log chapter transition:', error);
+          }
+  
+          // Play the next chapter
           playChapter(currentChapter + 1);
         } else {
           setIsPlaying(false);
         }
       };
-
+  
       audioElement.addEventListener("ended", handleEnded);
       return () => {
         audioElement.removeEventListener("ended", handleEnded);
@@ -379,7 +400,27 @@ const AudioPlayer = () => {
 
   
 
-  const playChapter = (index) => {
+  const playChapter = async (index) => {
+    // Send event for manual chapter selection
+    const email = localStorage.getItem('plutoemail') || 'anonymous';
+    
+    try {
+      await fetch('https://contractus.co.in/event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          Chapter: index
+        })
+      });
+      console.log('Chapter selection event logged successfully');
+    } catch (error) {
+      console.error('Failed to log chapter selection:', error);
+    }
+  
+    // Existing playChapter logic
     if (audioElement) {
       audioElement.pause();
     }
