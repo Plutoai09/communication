@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./ui/ripple.css";
 import { useParams, useNavigate } from "react-router-dom";
+
 import {
   Rewind,
   FastForward,
@@ -87,6 +88,7 @@ const AudioPlayer = () => {
   const [authorName, setAuthorName] = useState("");
   const [persona, setPersona] = useState("");
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState('controls');
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioElement, setAudioElement] = useState(null);
   const [question, setQuestion] = useState("");
@@ -115,11 +117,62 @@ const AudioPlayer = () => {
     }
   };
 
+
+  // Add new effect to handle elevenlabs-convai click
+  useEffect(() => {
+    if (activeTab === 'Tips') {
+      // Wait for the element to be available in the DOM
+      setTimeout(() => {
+        const convaiElement = document.querySelector('elevenlabs-convai');
+        if (convaiElement) {
+          convaiElement.addEventListener('click', () => {
+            if (audioElement && isPlaying) {
+              audioElement.pause();
+              setIsPlaying(false);
+              setLastPlayedTime(audioElement.currentTime);
+            }
+          });
+        }
+      }, 1000); // Give time for the element to load
+
+      // Cleanup function
+      return () => {
+        const convaiElement = document.querySelector('elevenlabs-convai');
+        if (convaiElement) {
+          convaiElement.removeEventListener('click', () => {
+            if (audioElement && isPlaying) {
+              audioElement.pause();
+              setIsPlaying(false);
+              setLastPlayedTime(audioElement.currentTime);
+            }
+          });
+        }
+      };
+    }
+  }, [activeTab, audioElement, isPlaying]);
+
+
+
   const handleNextChaptermain = () => {
     if (currentChapter < chapters.length - 1) {
       playChapter(currentChapter + 1);
     }
   };
+
+
+  useEffect(() => {
+    if (activeTab === 'Tips') {
+      const script = document.createElement('script');
+      script.src = "https://elevenlabs.io/convai-widget/index.js";
+      script.async = true;
+      script.type = "text/javascript";
+      document.body.appendChild(script);
+
+      return () => {
+        document.body.removeChild(script);
+      };
+    }
+  }, [activeTab]);
 
 
   useEffect(() => {
@@ -602,80 +655,108 @@ const AudioPlayer = () => {
       */}
 
           {/* Controls Section */}
-          <div className="bg-white shadow-xl rounded-[30px] p-4" style={{ height: '38vh' }}>
-  <div className="px-2 mt-4">
-    <div className="flex justify-between items-center">
-      <h2 className="text-xl font-semibold text-gray-800">Art of Conversation</h2>
-      <div 
-  onClick={() => window.location.href = "https://getpluto.in/upgrade"}
-  className="cursor-pointer px-2 py-1 rounded-full flex items-center justify-center"
-  style={{ backgroundColor: '#002244' }}
->
-  <span className="text-[10px] text-white">Upgrade</span>
-</div>
+          <div className="px-2 mt-4">
+  <div className="flex justify-between items-center">
+    <h2 className="text-xl font-semibold text-gray-800">Art of Conversation</h2>
+    <div 
+      onClick={() => window.location.href = "https://getpluto.in/upgrade"}
+      className="cursor-pointer px-2 py-1 rounded-full flex items-center justify-center"
+      style={{ backgroundColor: '#002244' }}
+    >
+      <span className="text-[10px] text-white">Upgrade</span>
     </div>
-    <p className="text-sm text-gray-500">Interactive Audiobook</p>
   </div>
+  <p className="text-sm text-gray-500">Interactive Audiobook</p>
+</div>
 
-  <div className="flex justify-center mb-3">
-  </div>
+{/* Tabs */}
+<div className="flex border-b mt-4">
+  <button
+    className={`flex-1 py-2 text-sm font-medium ${
+      activeTab === 'controls'
+        ? 'text-blue-600 border-b-2 border-blue-600'
+        : 'text-gray-500'
+    }`}
+    onClick={() => setActiveTab('controls')}
+  >
+    Controls
+  </button>
+  <button
+    className={`flex-1 py-2 text-sm font-medium ${
+      activeTab === 'chapters'
+        ? 'text-blue-600 border-b-2 border-blue-600'
+        : 'text-gray-500'
+    }`}
+    onClick={() => setActiveTab('chapters')}
+  >
+    Chapters
+  </button>
+  <button
+    className={`flex-1 py-2 text-sm font-medium ${
+      activeTab === 'Tips'
+        ? 'text-blue-600 border-b-2 border-blue-600'
+        : 'text-gray-500'
+    }`}
+    onClick={() => setActiveTab('Tips')}
+  >
+    Tips
+  </button>
+</div>
 
-  <div className="flex items-center mt-6">
-        <span className="text-xs text-gray-500 w-8">
-          {formatTime(currentTime)}
-        </span>
+{/* Tab Content */}
+{activeTab === 'controls' && (
+     <div className="p-4 h-[65vh] overflow-y-auto">
+<div className="text-left mb-4 mt-[2vh]">
+  <p className="text-sm text-gray-700 leading-relaxed">
+    Chapter: 
+    <span className="text-black font-semibold ml-2">
+      {chapters[currentChapter]?.title || `Chapter ${currentChapter + 1}`}
+    </span>
+  </p>
+</div>
+   <div className="flex items-center mt-[3vh]">
+       <span className="text-xs text-gray-500 w-8">
+         {formatTime(currentTime)}
+      </span>
+      <div 
+        ref={progressBarRef}
+        className="flex-grow mx-2 h-1 bg-gray-300 rounded-full cursor-pointer relative"
+        onMouseDown={handleProgressBarInteraction}
+      >
+        <div
+          className="absolute top-0 left-0 h-1 bg-blue-500 rounded-full"
+          style={{ width: `${(currentTime / duration) * 100}%` }}
+        />
         <div 
-          ref={progressBarRef}
-          className="flex-grow mx-2 h-1 bg-gray-300 rounded-full cursor-pointer relative"
-          onMouseDown={handleProgressBarInteraction}
-        >
-          <div
-            className="absolute top-0 left-0 h-1 bg-blue-500 rounded-full"
-            style={{ width: `${(currentTime / duration) * 100}%` }}
-          />
-          <div 
-            className="absolute top-0 left-0 w-4 h-4 bg-white rounded-full shadow-md -ml-2 -mt-1.5 transform transition-transform hover:scale-125"
-            style={{ 
-              left: `${(currentTime / duration) * 100}%`,
-              cursor: 'pointer'
-            }}
-          />
-        </div>
-        <span className="text-xs text-gray-500 w-8 text-right">
-          {formatTime(duration)}
-        </span>
+          className="absolute top-0 left-0 w-4 h-4 bg-white rounded-full shadow-md -ml-2 -mt-1.5 transform transition-transform hover:scale-125"
+          style={{ 
+            left: `${(currentTime / duration) * 100}%`,
+            cursor: 'pointer'
+          }}
+        />
       </div>
+      <span className="text-xs text-gray-500 w-8 text-right">
+        {formatTime(duration)}
+      </span>
+    </div>
 
-<div className="flex justify-center items-center mb-3 mt-8 gap-20">
+    <div className="flex justify-center items-center mb-3 mt-8">
   <div className="flex flex-col items-center">
     <button
       onClick={togglePlayPause}
       className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-3 border-2 border-gray-300"
     >
-      {isPlaying ? <Pause size={18} fill ="black"/> : <Play size={18} fill ="black"/>}
+      {isPlaying ? <Pause size={18} fill="black"/> : <Play size={18} fill="black"/>}
     </button>
     <span className="text-[11px] text-gray-500">Play</span>
   </div>
+</div>
 
-  <div className="flex flex-col items-center">
-    <button
-      onClick={() =>
-        (window.location.href = "https://www.plutoai.co.in/interact")
-      }
-      className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-3 border-2 border-gray-300"
-    >
-      <Phone size={18} fill ="black"/>
-    </button>
-    <span className="text-[11px] text-gray-500">Talk & Learn</span>
   </div>
-</div>
-</div>
+)}
 
-
-     {/* Chapters List - Adjusted height */}
-     <div className="flex-1 min-h-0 px-6 mt-2 mb-4 overflow-hidden">
-  <h3 className="text-center text-xs text-gray-500 mb-2">Chapters</h3>
-  <div className="h-full overflow-y-auto custom-scrollbar">
+{activeTab === 'chapters' && (
+ <div className="p-4 h-[65vh] overflow-y-auto custom-scrollbar">
     {chapters.map((chapter, index) => (
       <div
         key={index}
@@ -688,18 +769,38 @@ const AudioPlayer = () => {
           <p className="text-xs text-gray-400 mb-0.5">
             Chapter {index}
           </p>
-          <p
-            className={`text-sm text-gray-900 ${
-              currentChapter === index ? "font-bold" : ""
-            }`}
-          >
+          <p className={`text-sm text-gray-900 ${
+            currentChapter === index ? "font-bold" : ""
+          }`}>
             {chapter.title || `Chapter ${index + 1}`}
           </p>
         </div>
       </div>
     ))}
   </div>
-</div>
+)}
+
+
+{activeTab === 'Tips' && (
+  <div className="h-[65vh] overflow-hidden">
+    <div className="h-full w-full flex items-center justify-center p-4">
+      <elevenlabs-convai 
+        agent-id="gjXeuTR2Uf25WNrBWeul"
+        style={{
+          width: '100%',
+          height: '40%',
+          maxWidth: '350px', // Increased maxWidth to center properly
+          position: 'relative', // Changed to relative for natural positioning
+          marginTop: '0', // Removed extra margin
+          margin: 'auto', // Center element both horizontally and vertically
+        }}
+      ></elevenlabs-convai>
+    </div>
+  </div>
+)}
+
+     {/* Chapters List - Adjusted height */}
+
 
 <style jsx>{`
   .custom-scrollbar::-webkit-scrollbar {
