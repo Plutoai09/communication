@@ -807,7 +807,7 @@ const AudioPlayer = () => {
                   className="w-full max-w-xs" 
                   style={{
       position: 'relative',
-      transform: 'scale(0.6) translateY(10vh) ', // Combine vertical and horizontal centering
+      transform: 'scale(0.75) translateY(10vh) ', // Combine vertical and horizontal centering
       transformOrigin: 'top center',
      
       '--tw-shadow': 'none', // Remove Tailwind shadow
