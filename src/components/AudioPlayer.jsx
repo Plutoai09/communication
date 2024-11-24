@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./ui/ripple.css";
 import { useParams, useNavigate } from "react-router-dom";
+import ElevenLabsConversation from "./ElevenLabsConversation.jsx";
+
 
 import {
   Rewind,
@@ -118,46 +120,7 @@ const AudioPlayer = () => {
   };
 
 
-  useEffect(() => {
-    // Simpler style override that only targets the box-shadow
-    const style = document.createElement('style');
-    style.textContent = `
-      ._box_4a2g8_36 {
-        box-shadow: none !important;
-      }
-    `;
-    document.head.appendChild(style);
-  
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
 
-
-  // Add new effect to handle elevenlabs-convai click
-  useEffect(() => {
-    if (activeTab === 'controls') {
-      // Remove any existing scripts first
-      const existingScript = document.querySelector('script[src="https://elevenlabs.io/convai-widget/index.js"]');
-      if (existingScript) {
-        existingScript.remove();
-      }
-
-      const script = document.createElement('script');
-      script.src = "https://elevenlabs.io/convai-widget/index.js";
-      script.async = true;
-      script.type = "text/javascript";
-      document.body.appendChild(script);
-
-      return () => {
-        // Cleanup when component unmounts or tab changes
-        const scriptToRemove = document.querySelector('script[src="https://elevenlabs.io/convai-widget/index.js"]');
-        if (scriptToRemove) {
-          scriptToRemove.remove();
-        }
-      };
-    }
-  }, [activeTab]);
 
   const handleNextChaptermain = () => {
     if (currentChapter < chapters.length - 1) {
@@ -193,35 +156,6 @@ const AudioPlayer = () => {
 
   
   
-  useEffect(() => {
-    const removeWidgetShadow = () => {
-      // Create a mutation observer to watch for changes in the DOM
-      const observer = new MutationObserver((mutations) => {
-        // Look for the widget's shadow-containing element
-        const widgetBox = document.querySelector('._box_4a2g8_36');
-        if (widgetBox) {
-          widgetBox.style.setProperty('box-shadow', 'none', 'important');
-          // Once found and modified, disconnect the observer
-          observer.disconnect();
-        }
-      });
-
-      // Start observing the document with the configured parameters
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true
-      });
-
-      // Cleanup function
-      return () => observer.disconnect();
-    };
-
-    if (activeTab === 'controls') {
-      // Add a slight delay to ensure the script has time to load
-      const timeoutId = setTimeout(removeWidgetShadow, 1000);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [activeTab]);
 
 
 
@@ -501,11 +435,14 @@ const AudioPlayer = () => {
   };
 
 
-  const pauseAudio = () => {
-    if (audioElement && isPlaying) {
-      audioElement.pause(); // Pause the audio
-      setLastPlayedTime(audioElement.currentTime); // Optionally store the time when paused
-      setIsPlaying(false); // Update the state to reflect that the audio is paused
+
+  const handleElevenLabsClick = () => {
+    // If audio is playing, pause it
+    console.log("ck")
+    if (isPlaying && audioElement) {
+      audioElement.pause();
+      setIsPlaying(false);
+      setLastPlayedTime(audioElement.currentTime);
     }
   };
 
@@ -790,49 +727,31 @@ const AudioPlayer = () => {
                 </span>
               </div>
 
-              <div className="flex justify-center items-center mb-2 mt-6">
-                <div className="flex flex-col items-center">
-                  <button
-                    onClick={togglePlayPause}
-                    className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-2 border-2 border-gray-300"
-                  >
-                    {isPlaying ? <Pause size={18} fill="black"/> : <Play size={18} fill="black"/>}
-                  </button>
-                  <span className="text-[11px] text-gray-500">Play</span>
-                </div>
-              </div>
+              <div className="flex justify-center items-center mb-1 mt-4">
+        <div className="flex flex-col items-center">
+          <button
+            onClick={togglePlayPause}
+            className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-2 border-2 border-gray-300"
+          >
+            {isPlaying ? <Pause size={18} fill="black"/> : <Play size={18} fill="black"/>}
+          </button>
+          <span className="text-[11px] text-gray-500">Play</span>
+        </div>
+      </div>
 
-              <div className="mt-4 flex justify-center" style={{ position: 'relative', zIndex: 10 }}>
-                <div 
-                  className="w-full max-w-xs" 
-                  style={{
-      position: 'relative',
-      transform: 'scale(0.75) translateY(5vh) ', // Combine vertical and horizontal centering
-      transformOrigin: 'top center',
-     
-      '--tw-shadow': 'none', // Remove Tailwind shadow
-      boxShadow: 'none !important', // Remove box shadow
-    }}
-                >
-                  <elevenlabs-convai 
-                    agent-id="gjXeuTR2Uf25WNrBWeul"
-                    style={{
-                      width: '100%',
-                      minHeight: '80px',
-                      display: 'block',
-                      position: 'static',
-                      bottom: 'auto',
-                      left: 'auto',
-                      margin: '0',
-                      transform: 'none',
-                        boxShadow: 'none !important',
-                  '--tw-shadow': 'none'
-                    }}
-
-                    onClick={pauseAudio}
-                  ></elevenlabs-convai>
-                </div>
-              </div>
+      <div 
+        onClick={handleElevenLabsClick} 
+        className="mt-2 flex justify-center" 
+        style={{ position: 'relative', zIndex: 10 }}
+      >
+        <div className="w-full max-w-xs" style={{
+          position: 'relative',
+          transform: 'scale(0.65) translateY(2vh)',
+          transformOrigin: 'top center',
+        }}>
+          <ElevenLabsConversation />
+        </div>
+      </div>
             </div>
           )}
 

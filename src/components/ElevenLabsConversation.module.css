@@ -1,0 +1,109 @@
+import React, { useEffect, useState } from 'react';
+import { useConversation } from '@11labs/react';
+import { PhoneCall, XCircle } from 'lucide-react';
+import styles from './ElevenLabsConversation.module.css';
+
+const ElevenLabsConversation = () => {
+  const [isMicAllowed, setIsMicAllowed] = useState(false);
+  const [isActive, setIsActive] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
+
+  const conversation = useConversation({
+    onConnect: () => {
+      console.log('Connected to ElevenLabs');
+    },
+    onDisconnect: () => {
+      console.log('Disconnected from ElevenLabs');
+      handleCleanup();
+    },
+    onMessage: (message) => {
+      console.log('Received message:', message);
+    },
+    onError: (error) => {
+      console.error('ElevenLabs error:', error);
+      setIsActive(false);
+      handleCleanup();
+    },
+  });
+
+  const { status, isSpeaking } = conversation;
+
+  const handleCleanup = () => {
+    setIsCleaningUp(true);
+    setTimeout(() => {
+      setIsActive(false);
+      setIsCleaningUp(false);
+    }, 100);
+  };
+
+  useEffect(() => {
+    const setupMicrophone = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        setIsMicAllowed(true);
+      } catch (error) {
+        console.error('Microphone access denied:', error);
+        setIsMicAllowed(false);
+      }
+    };
+
+    setupMicrophone();
+
+    return () => {
+      if (isActive) {
+        handleCleanup();
+      }
+    };
+  }, []);
+
+  const handleToggleCall = async () => {
+    if (isActive) {
+      try {
+        await conversation.endSession();
+        handleCleanup();
+      } catch (error) {
+        console.error('Failed to end conversation:', error);
+        handleCleanup();
+      }
+    } else {
+      try {
+        await conversation.startSession({
+          agentId: 'gjXeuTR2Uf25WNrBWeul',
+        });
+        setIsActive(true);
+      } catch (error) {
+        console.error('Failed to start conversation:', error);
+        handleCleanup();
+      }
+    }
+  };
+
+  const isConnected = status === 'connected' && isActive;
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <div className={styles.iconContainer}>
+          <div className={`${styles.animatedCircle} ${isConnected ? styles.connected : ''} ${isSpeaking ? styles.speaking : ''}`} />
+        </div>
+
+        <p className={styles.text}>
+          {!isConnected ? 'AI Powered Tips' : isSpeaking ? 'Talking...' : 'Listening...'}
+        </p>
+
+        <button
+          onClick={handleToggleCall}
+          disabled={!isMicAllowed || isCleaningUp}
+          className={`${styles.button} ${isConnected ? styles.buttonConnected : ''} ${(!isMicAllowed || isCleaningUp) ? styles.buttonDisabled : ''}`}
+        >
+          <span className={styles.iconWrapper}>
+            {isConnected ? <XCircle size={18} /> : <PhoneCall size={18} />}
+          </span>
+          {isConnected ? 'End' : 'Ask'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default ElevenLabsConversation;
