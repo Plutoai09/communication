@@ -501,6 +501,15 @@ const AudioPlayer = () => {
   };
 
 
+  const pauseAudio = () => {
+    if (audioElement && isPlaying) {
+      audioElement.pause(); // Pause the audio
+      setLastPlayedTime(audioElement.currentTime); // Optionally store the time when paused
+      setIsPlaying(false); // Update the state to reflect that the audio is paused
+    }
+  };
+
+
   
 
   const playChapter = async (index) => {
@@ -819,6 +828,8 @@ const AudioPlayer = () => {
                         boxShadow: 'none !important',
                   '--tw-shadow': 'none'
                     }}
+
+                    onClick={pauseAudio}
                   ></elevenlabs-convai>
                 </div>
               </div>
