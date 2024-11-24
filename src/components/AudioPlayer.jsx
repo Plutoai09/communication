@@ -118,40 +118,46 @@ const AudioPlayer = () => {
   };
 
 
+  useEffect(() => {
+    // Simpler style override that only targets the box-shadow
+    const style = document.createElement('style');
+    style.textContent = `
+      ._box_4a2g8_36 {
+        box-shadow: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+  
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+
   // Add new effect to handle elevenlabs-convai click
   useEffect(() => {
-    if (activeTab === 'Tips') {
-      // Wait for the element to be available in the DOM
-      setTimeout(() => {
-        const convaiElement = document.querySelector('elevenlabs-convai');
-        if (convaiElement) {
-          convaiElement.addEventListener('click', () => {
-            if (audioElement && isPlaying) {
-              audioElement.pause();
-              setIsPlaying(false);
-              setLastPlayedTime(audioElement.currentTime);
-            }
-          });
-        }
-      }, 1000); // Give time for the element to load
+    if (activeTab === 'controls') {
+      // Remove any existing scripts first
+      const existingScript = document.querySelector('script[src="https://elevenlabs.io/convai-widget/index.js"]');
+      if (existingScript) {
+        existingScript.remove();
+      }
 
-      // Cleanup function
+      const script = document.createElement('script');
+      script.src = "https://elevenlabs.io/convai-widget/index.js";
+      script.async = true;
+      script.type = "text/javascript";
+      document.body.appendChild(script);
+
       return () => {
-        const convaiElement = document.querySelector('elevenlabs-convai');
-        if (convaiElement) {
-          convaiElement.removeEventListener('click', () => {
-            if (audioElement && isPlaying) {
-              audioElement.pause();
-              setIsPlaying(false);
-              setLastPlayedTime(audioElement.currentTime);
-            }
-          });
+        // Cleanup when component unmounts or tab changes
+        const scriptToRemove = document.querySelector('script[src="https://elevenlabs.io/convai-widget/index.js"]');
+        if (scriptToRemove) {
+          scriptToRemove.remove();
         }
       };
     }
-  }, [activeTab, audioElement, isPlaying]);
-
-
+  }, [activeTab]);
 
   const handleNextChaptermain = () => {
     if (currentChapter < chapters.length - 1) {
@@ -161,18 +167,62 @@ const AudioPlayer = () => {
 
 
   useEffect(() => {
-    if (activeTab === 'Tips') {
-      const script = document.createElement('script');
-      script.src = "https://elevenlabs.io/convai-widget/index.js";
-      script.async = true;
-      script.type = "text/javascript";
-      document.body.appendChild(script);
+    // Add custom CSS to override widget styles and remove shadow
+    const style = document.createElement('style');
+    style.textContent = `
+      elevenlabs-convai {
+        position: static !important;
+        bottom: auto !important;
+        left: auto !important;
+        margin: 0 !important;
+        transform: none !important;
+      }
+      ._poweredBy_4a2g8_280 { 
+        box-shadow: none !important; /* Disable shadow */
+        background: transparent !important; /* Optional, if shadow overlay affects background */
+      }
 
-      return () => {
-        document.body.removeChild(script);
-      };
+
+    `;
+    document.head.appendChild(style);
+  
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  
+  
+  useEffect(() => {
+    const removeWidgetShadow = () => {
+      // Create a mutation observer to watch for changes in the DOM
+      const observer = new MutationObserver((mutations) => {
+        // Look for the widget's shadow-containing element
+        const widgetBox = document.querySelector('._box_4a2g8_36');
+        if (widgetBox) {
+          widgetBox.style.setProperty('box-shadow', 'none', 'important');
+          // Once found and modified, disconnect the observer
+          observer.disconnect();
+        }
+      });
+
+      // Start observing the document with the configured parameters
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+
+      // Cleanup function
+      return () => observer.disconnect();
+    };
+
+    if (activeTab === 'controls') {
+      // Add a slight delay to ensure the script has time to load
+      const timeoutId = setTimeout(removeWidgetShadow, 1000);
+      return () => clearTimeout(timeoutId);
     }
   }, [activeTab]);
+
 
 
   useEffect(() => {
@@ -691,69 +741,89 @@ const AudioPlayer = () => {
   >
     Chapters
   </button>
-  <button
-    className={`flex-1 py-2 text-sm font-medium ${
-      activeTab === 'Tips'
-        ? 'text-blue-600 border-b-2 border-blue-600'
-        : 'text-gray-500'
-    }`}
-    onClick={() => setActiveTab('Tips')}
-  >
-    Tips
-  </button>
+ 
 </div>
 
 {/* Tab Content */}
 {activeTab === 'controls' && (
-     <div className="p-4 h-[65vh] overflow-y-auto">
-<div className="text-left mb-4 mt-[2vh]">
-  <p className="text-sm text-gray-700 leading-relaxed">
-    Chapter: 
-    <span className="text-black font-semibold ml-2">
-      {chapters[currentChapter]?.title || `Chapter ${currentChapter + 1}`}
-    </span>
-  </p>
-</div>
-   <div className="flex items-center mt-[3vh]">
-       <span className="text-xs text-gray-500 w-8">
-         {formatTime(currentTime)}
-      </span>
-      <div 
-        ref={progressBarRef}
-        className="flex-grow mx-2 h-1 bg-gray-300 rounded-full cursor-pointer relative"
-        onMouseDown={handleProgressBarInteraction}
-      >
-        <div
-          className="absolute top-0 left-0 h-1 bg-blue-500 rounded-full"
-          style={{ width: `${(currentTime / duration) * 100}%` }}
-        />
-        <div 
-          className="absolute top-0 left-0 w-4 h-4 bg-white rounded-full shadow-md -ml-2 -mt-1.5 transform transition-transform hover:scale-125"
-          style={{ 
-            left: `${(currentTime / duration) * 100}%`,
-            cursor: 'pointer'
-          }}
-        />
-      </div>
-      <span className="text-xs text-gray-500 w-8 text-right">
-        {formatTime(duration)}
-      </span>
-    </div>
+            <div className="p-4 h-[65vh] overflow-y-auto">
+              <div className="text-left mb-4 mt-[2vh]">
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  Chapter: 
+                  <span className="text-black font-semibold ml-2">
+                    {chapters[currentChapter]?.title || `Chapter ${currentChapter + 1}`}
+                  </span>
+                </p>
+              </div>
+              <div className="flex items-center mt-[3vh]">
+                <span className="text-xs text-gray-500 w-8">
+                  {formatTime(currentTime)}
+                </span>
+                <div 
+                  ref={progressBarRef}
+                  className="flex-grow mx-2 h-1 bg-gray-300 rounded-full cursor-pointer relative"
+                  onMouseDown={handleProgressBarInteraction}
+                >
+                  <div
+                    className="absolute top-0 left-0 h-1 bg-blue-500 rounded-full"
+                    style={{ width: `${(currentTime / duration) * 100}%` }}
+                  />
+                  <div 
+                    className="absolute top-0 left-0 w-4 h-4 bg-white rounded-full shadow-md -ml-2 -mt-1.5 transform transition-transform hover:scale-125"
+                    style={{ 
+                      left: `${(currentTime / duration) * 100}%`,
+                      cursor: 'pointer'
+                    }}
+                  />
+                </div>
+                <span className="text-xs text-gray-500 w-8 text-right">
+                  {formatTime(duration)}
+                </span>
+              </div>
 
-    <div className="flex justify-center items-center mb-3 mt-8">
-  <div className="flex flex-col items-center">
-    <button
-      onClick={togglePlayPause}
-      className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-3 border-2 border-gray-300"
-    >
-      {isPlaying ? <Pause size={18} fill="black"/> : <Play size={18} fill="black"/>}
-    </button>
-    <span className="text-[11px] text-gray-500">Play</span>
-  </div>
-</div>
+              <div className="flex justify-center items-center mb-2 mt-6">
+                <div className="flex flex-col items-center">
+                  <button
+                    onClick={togglePlayPause}
+                    className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-2 border-2 border-gray-300"
+                  >
+                    {isPlaying ? <Pause size={18} fill="black"/> : <Play size={18} fill="black"/>}
+                  </button>
+                  <span className="text-[11px] text-gray-500">Play</span>
+                </div>
+              </div>
 
-  </div>
-)}
+              <div className="mt-4 flex justify-center" style={{ position: 'relative', zIndex: 10 }}>
+                <div 
+                  className="w-full max-w-xs" 
+                  style={{
+      position: 'relative',
+      transform: 'scale(0.5) translateY(5vh) ', // Combine vertical and horizontal centering
+      transformOrigin: 'top center',
+     
+      '--tw-shadow': 'none', // Remove Tailwind shadow
+      boxShadow: 'none !important', // Remove box shadow
+    }}
+                >
+                  <elevenlabs-convai 
+                    agent-id="gjXeuTR2Uf25WNrBWeul"
+                    style={{
+                      width: '100%',
+                      minHeight: '80px',
+                      display: 'block',
+                      position: 'static',
+                      bottom: 'auto',
+                      left: 'auto',
+                      margin: '0',
+                      transform: 'none',
+                        boxShadow: 'none !important',
+                  '--tw-shadow': 'none'
+                    }}
+                  ></elevenlabs-convai>
+                </div>
+              </div>
+            </div>
+          )}
 
 {activeTab === 'chapters' && (
  <div className="p-4 h-[65vh] overflow-y-auto custom-scrollbar">
@@ -781,23 +851,7 @@ const AudioPlayer = () => {
 )}
 
 
-{activeTab === 'Tips' && (
-  <div className="h-[65vh] overflow-hidden">
-    <div className="h-full w-full flex items-center justify-center p-4">
-      <elevenlabs-convai 
-        agent-id="gjXeuTR2Uf25WNrBWeul"
-        style={{
-          width: '100%',
-          height: '40%',
-          maxWidth: '350px', // Increased maxWidth to center properly
-          position: 'relative', // Changed to relative for natural positioning
-          marginTop: '0', // Removed extra margin
-          margin: 'auto', // Center element both horizontally and vertically
-        }}
-      ></elevenlabs-convai>
-    </div>
-  </div>
-)}
+
 
      {/* Chapters List - Adjusted height */}
 
