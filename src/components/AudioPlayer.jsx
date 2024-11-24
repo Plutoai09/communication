@@ -600,7 +600,7 @@ const AudioPlayer = () => {
           </div>
 
           {/* Book Image Section - Adjusted height */}
-          <div className="relative w-full pt-[30vh] ">
+          <div className="relative w-full pt-[30vh]">
             <div className="absolute inset-0">
               <div
                 className={`absolute inset-0 w-full h-full transition-all duration-300 ${
@@ -609,13 +609,18 @@ const AudioPlayer = () => {
                     : ""
                 }`}
               />
-              <img
-                src={imageSrc || "/api/placeholder/375/288"}
-                alt="Book cover"
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
                 className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${
                   isAnswerPlaying ? "filter blur-sm" : ""
                 }`}
-              />
+              >
+                <source src="/videos/bg.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
               <div
                 className={`absolute inset-0 bg-black transition-opacity duration-300 ${
                   isAnswerPlaying ? "opacity-30" : "opacity-0"
