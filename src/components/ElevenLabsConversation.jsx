@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useConversation } from '@11labs/react';
-import { PhoneCall, XCircle } from 'lucide-react';
+import { PhoneCall, XCircle, Mic } from 'lucide-react';
 
 const ElevenLabsConversation = () => {
   const [isMicAllowed, setIsMicAllowed] = useState(false);
+  const [showMicPrompt, setShowMicPrompt] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -40,32 +41,16 @@ const ElevenLabsConversation = () => {
 
   const { status, isSpeaking } = conversation;
 
-  // Remove initial mic permission request useEffect
-
-  const handleCleanup = () => {
-    setIsCleaningUp(true);
-    setTimeout(() => {
-      setIsActive(false);
-      setIsCleaningUp(false);
-    }, 100);
-  };
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(error => {
-        console.error('Error autoplaying video:', error);
-      });
-    }
-  }, []);
-
   const requestMicPermission = async () => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsMicAllowed(true);
+      setShowMicPrompt(false);
       return true;
     } catch (error) {
       console.error('Microphone access denied:', error);
       setIsMicAllowed(false);
+      setShowMicPrompt(true);
       return false;
     }
   };
@@ -82,7 +67,6 @@ const ElevenLabsConversation = () => {
       }
     } else {
       try {
-        // Request mic permission before starting the session
         setIsInitializing(true);
         const micPermissionGranted = await requestMicPermission();
         
@@ -106,6 +90,11 @@ const ElevenLabsConversation = () => {
     }
   };
 
+  const handleMicPermissionPrompt = () => {
+    // Open browser's mic settings or prompt
+    window.open('chrome://settings/content/microphone', '_blank');
+  };
+
   const isConnected = status === 'connected' && isActive;
 
   const getStatusText = () => {
@@ -116,7 +105,30 @@ const ElevenLabsConversation = () => {
   };
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full max-w-sm relative">
+      {showMicPrompt && (
+        <div className="absolute inset-0 z-10 bg-white/90 flex flex-col items-center justify-center p-4 rounded-3xl">
+          <Mic size={48} className="text-gray-700 mb-4" />
+          <p className="text-center text-gray-900 mb-4">
+            Microphone access is required to continue. Please enable microphone permissions in your browser settings.
+          </p>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowMicPrompt(false)}
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-full"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleMicPermissionPrompt}
+              className="px-4 py-2 bg-black text-white rounded-full"
+            >
+              Open Settings
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-4">
         <div className="flex gap-4">
           <div className="relative w-16 h-16">
