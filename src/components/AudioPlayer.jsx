@@ -110,6 +110,7 @@ const [duration, setDuration] = useState(0);
   const afterAnswerAudioRef = useRef(null);
 
   const getFullAudioUrl = (path) => {
+    console.log(path)
     const baseUrl = "https://contractus.co.in/";
     return `${baseUrl}${path}`;
   };
@@ -187,18 +188,35 @@ const [duration, setDuration] = useState(0);
           throw new Error("Failed to fetch audiobook");
         }
 
+
+
         const data = await response.json();
+
+
+        const updatedChapters = data.chapters.map(chapter => ({
+          ...chapter,
+          url: chapter.url.replace(
+            'https://contractus.co.in/audiobook/', 
+            'https://music-chi-lac-43.vercel.app/'
+          )
+        }));
+
+
+        console.log(data)
         if (data.chapters && data.chapters.length > 0) {
-          setAudioSrc(data.chapters[0].url);
+          setAudioSrc(updatedChapters[0].url);
         } else {
           throw new Error("No chapters found in the response");
         }
+
+
+
 
         setImageSrc(data.imageSrc);
         setAuthorImageSrc(data.authorImageSrc);
         setAuthorName(data.authorName);
         setPersona(data.persona);
-        setChapters(data.chapters);
+        setChapters(updatedChapters);
         setError("");
       } catch (error) {
         console.error("Error fetching audiobook:", error);
@@ -480,13 +498,23 @@ const [duration, setDuration] = useState(0);
 
 
 
-  const handleElevenLabsClick = () => {
-    // If audio is playing, pause it
-    console.log("ck")
+  const handleElevenLabsClick = async () => {
+    // Pause audio if playing
     if (isPlaying && audioElement) {
       audioElement.pause();
       setIsPlaying(false);
       setLastPlayedTime(audioElement.currentTime);
+    }
+  
+    try {
+      // Request mic permission
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Optional: Add any additional logic after mic permission
+      console.log("Mic access granted");
+    } catch (error) {
+      console.error('Microphone access denied:', error);
+      alert('Microphone access is required to use this feature');
     }
   };
 
@@ -573,6 +601,7 @@ const [duration, setDuration] = useState(0);
       setDuration(0);
       
       // Set the source and start loading
+      console.log(chapters[index].url)
       newAudio.src = chapters[index].url;
       
       // Wait for audio to be ready
@@ -818,7 +847,8 @@ const [duration, setDuration] = useState(0);
       {isChapterLoading ? (
         <div className="flex flex-col items-center justify-center space-y-4 mt-8">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"/>
-          <p className="text-sm text-gray-600">Loading chapter...</p>
+          <p className="text-xs text-gray-600">Loading chapter, no compromise with audio quality...</p>
+
         </div>
       ) : (
         <>

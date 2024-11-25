@@ -6,7 +6,7 @@ const ElevenLabsConversation = () => {
   const [isMicAllowed, setIsMicAllowed] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(false);
   const videoRef = useRef(null);
   const hasGreeted = useRef(false);
 
@@ -15,7 +15,6 @@ const ElevenLabsConversation = () => {
       console.log('Connected to ElevenLabs');
       if (isActive && !hasGreeted.current) {
         hasGreeted.current = true;
-        // Immediately send greeting when connected
         try {
           await conversation.sendTextMessage("Hello! I'm your AI assistant. How can I help you today?");
         } catch (error) {
@@ -41,29 +40,7 @@ const ElevenLabsConversation = () => {
 
   const { status, isSpeaking } = conversation;
 
-  // Initialize microphone access early
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        // Request microphone access immediately when component mounts
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        setIsMicAllowed(true);
-      } catch (error) {
-        console.error('Microphone access denied:', error);
-        setIsMicAllowed(false);
-      } finally {
-        setIsInitializing(false);
-      }
-    };
-
-    initialize();
-
-    return () => {
-      if (isActive) {
-        handleCleanup();
-      }
-    };
-  }, []);
+  // Remove initial mic permission request useEffect
 
   const handleCleanup = () => {
     setIsCleaningUp(true);
@@ -81,6 +58,18 @@ const ElevenLabsConversation = () => {
     }
   }, []);
 
+  const requestMicPermission = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      setIsMicAllowed(true);
+      return true;
+    } catch (error) {
+      console.error('Microphone access denied:', error);
+      setIsMicAllowed(false);
+      return false;
+    }
+  };
+
   const handleToggleCall = async () => {
     if (isActive) {
       try {
@@ -93,14 +82,25 @@ const ElevenLabsConversation = () => {
       }
     } else {
       try {
+        // Request mic permission before starting the session
+        setIsInitializing(true);
+        const micPermissionGranted = await requestMicPermission();
+        
+        if (!micPermissionGranted) {
+          setIsInitializing(false);
+          return;
+        }
+
         setIsActive(true);
         const conversationId = await conversation.startSession({
           agentId: 'gjXeuTR2Uf25WNrBWeul',
         });
         console.log('Started conversation with ID:', conversationId);
+        setIsInitializing(false);
       } catch (error) {
         console.error('Failed to start conversation:', error);
         setIsActive(false);
+        setIsInitializing(false);
         handleCleanup();
       }
     }
@@ -144,7 +144,7 @@ const ElevenLabsConversation = () => {
 
             <button
               onClick={handleToggleCall}
-              disabled={!isMicAllowed || isCleaningUp || isInitializing}
+              disabled={isCleaningUp || isInitializing}
               className={`
                 flex items-center justify-center px-4 py-1.5 rounded-full font-medium text-sm
                 transition-all duration-200 ease-in-out
