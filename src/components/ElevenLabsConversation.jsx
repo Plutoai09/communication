@@ -6,14 +6,26 @@ const ElevenLabsConversation = () => {
   const [isMicAllowed, setIsMicAllowed] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const videoRef = useRef(null);
+  const hasGreeted = useRef(false);
 
   const conversation = useConversation({
-    onConnect: () => {
+    onConnect: async () => {
       console.log('Connected to ElevenLabs');
+      if (isActive && !hasGreeted.current) {
+        hasGreeted.current = true;
+        // Immediately send greeting when connected
+        try {
+          await conversation.sendTextMessage("Hello! I'm your AI assistant. How can I help you today?");
+        } catch (error) {
+          console.error('Failed to send greeting:', error);
+        }
+      }
     },
     onDisconnect: () => {
       console.log('Disconnected from ElevenLabs');
+      hasGreeted.current = false;
       handleCleanup();
     },
     onMessage: (message) => {
@@ -21,12 +33,37 @@ const ElevenLabsConversation = () => {
     },
     onError: (error) => {
       console.error('ElevenLabs error:', error);
+      hasGreeted.current = false;
       setIsActive(false);
       handleCleanup();
     },
   });
 
   const { status, isSpeaking } = conversation;
+
+  // Initialize microphone access early
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        // Request microphone access immediately when component mounts
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        setIsMicAllowed(true);
+      } catch (error) {
+        console.error('Microphone access denied:', error);
+        setIsMicAllowed(false);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initialize();
+
+    return () => {
+      if (isActive) {
+        handleCleanup();
+      }
+    };
+  }, []);
 
   const handleCleanup = () => {
     setIsCleaningUp(true);
@@ -37,41 +74,17 @@ const ElevenLabsConversation = () => {
   };
 
   useEffect(() => {
-    const setupMicrophone = async () => {
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        setIsMicAllowed(true);
-      } catch (error) {
-        console.error('Microphone access denied:', error);
-        setIsMicAllowed(false);
-      }
-    };
-
-    setupMicrophone();
-
-    return () => {
-      if (isActive) {
-        handleCleanup();
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     if (videoRef.current) {
-      const playVideo = async () => {
-        try {
-          await videoRef.current.play();
-        } catch (error) {
-          console.error('Error autoplaying video:', error);
-        }
-      };
-      playVideo();
+      videoRef.current.play().catch(error => {
+        console.error('Error autoplaying video:', error);
+      });
     }
   }, []);
 
   const handleToggleCall = async () => {
     if (isActive) {
       try {
+        hasGreeted.current = false;
         await conversation.endSession();
         handleCleanup();
       } catch (error) {
@@ -80,12 +93,14 @@ const ElevenLabsConversation = () => {
       }
     } else {
       try {
-        await conversation.startSession({
+        setIsActive(true);
+        const conversationId = await conversation.startSession({
           agentId: 'gjXeuTR2Uf25WNrBWeul',
         });
-        setIsActive(true);
+        console.log('Started conversation with ID:', conversationId);
       } catch (error) {
         console.error('Failed to start conversation:', error);
+        setIsActive(false);
         handleCleanup();
       }
     }
@@ -93,11 +108,17 @@ const ElevenLabsConversation = () => {
 
   const isConnected = status === 'connected' && isActive;
 
+  const getStatusText = () => {
+    if (isInitializing) return 'Initializing...';
+    if (!isConnected) return 'AI Powered Tips';
+    if (isSpeaking) return 'Talking...';
+    return 'Listening...';
+  };
+
   return (
     <div className="w-full max-w-sm">
       <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-4">
         <div className="flex gap-4">
-          {/* Left side - Icon */}
           <div className="relative w-16 h-16">
             <div className="absolute inset-0 rounded-full overflow-hidden">
               <video
@@ -116,15 +137,14 @@ const ElevenLabsConversation = () => {
             </div>
           </div>
 
-          {/* Right side - Text and Button */}
           <div className="flex flex-col justify-between flex-1 py-1">
             <p className="text-base text-gray-900 mb-3">
-              {!isConnected ? 'AI Powered Tips' : isSpeaking ? 'Talking...' : 'Listening...'}
+              {getStatusText()}
             </p>
 
             <button
               onClick={handleToggleCall}
-              disabled={!isMicAllowed || isCleaningUp}
+              disabled={!isMicAllowed || isCleaningUp || isInitializing}
               className={`
                 flex items-center justify-center px-4 py-1.5 rounded-full font-medium text-sm
                 transition-all duration-200 ease-in-out

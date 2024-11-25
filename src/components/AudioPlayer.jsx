@@ -4,7 +4,6 @@ import "./ui/ripple.css";
 import { useParams, useNavigate } from "react-router-dom";
 import ElevenLabsConversation from "./ElevenLabsConversation.jsx";
 
-
 import {
   Rewind,
   FastForward,
@@ -14,9 +13,10 @@ import {
   Phone,
   X,
   Loader,
-  Key
+  Key,
+  SkipBack,
+  SkipForward
 } from "lucide-react";
-
 const LoadingSkeleton = () => {
   return (
     <div className="w-full h-full max-h-[900px] sm:max-w-[375px] bg-white rounded-[40px] shadow-xl overflow-hidden flex flex-col mb-6 relative animate-pulse">
@@ -98,11 +98,13 @@ const AudioPlayer = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [answerAudioSrc, setAnswerAudioSrc] = useState("");
   const [isAnswerPlaying, setIsAnswerPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+const [currentTime, setCurrentTime] = useState(0);
+const [duration, setDuration] = useState(0);
   const [lastPlayedTime, setLastPlayedTime] = useState(0);
   const [chapters, setChapters] = useState([]);
   const [currentChapter, setCurrentChapter] = useState(0);
+  const [isChapterLoading, setIsChapterLoading] = useState(false);
+
 
   const answerAudioRef = useRef(null);
   const afterAnswerAudioRef = useRef(null);
@@ -228,16 +230,16 @@ const AudioPlayer = () => {
       };
     }
   }, [audioSrc]);
-
   useEffect(() => {
     if (audioElement) {
       const handleEnded = async () => {
+        // Check if there's a next chapter available
         if (currentChapter < chapters.length - 1) {
-          // Get email from localStorage
-          const email = localStorage.getItem('plutoemail') || 'anonymous';
-          
-          // Send POST request to track chapter transition
           try {
+            // Get email from localStorage for analytics
+            const email = localStorage.getItem('plutoemail') || 'anonymous';
+            
+            // Log the chapter transition
             await fetch('https://contractus.co.in/event', {
               method: 'POST',
               headers: {
@@ -245,27 +247,69 @@ const AudioPlayer = () => {
               },
               body: JSON.stringify({
                 email: email,
-                Chapter: currentChapter + 1  // Send the index of the next chapter
+                Chapter: currentChapter + 1
               })
             });
-            console.log('Chapter transition event logged successfully');
+
+            console.log(`Chapter ${currentChapter} ended, auto-playing chapter ${currentChapter + 1}`);
+            
+            // Set loading state
+            setIsChapterLoading(true);
+
+            // Clean up current audio
+            audioElement.pause();
+            audioElement.src = '';
+            audioElement.load();
+
+            // Create and set up new audio for next chapter
+            const nextChapter = currentChapter + 1;
+            const newAudio = new Audio(chapters[nextChapter].url);
+
+            // Set up promise to handle audio loading
+            const audioLoadPromise = new Promise((resolve, reject) => {
+              newAudio.oncanplaythrough = resolve;
+              newAudio.onerror = reject;
+            });
+
+            // Reset state for new chapter
+            setCurrentTime(0);
+            setDuration(0);
+            
+            // Wait for audio to be ready
+            await audioLoadPromise;
+            
+            // Update state with new chapter
+            setCurrentChapter(nextChapter);
+            setAudioElement(newAudio);
+            
+            // Start playing new chapter
+            await newAudio.play();
+            setIsPlaying(true);
+
           } catch (error) {
-            console.error('Failed to log chapter transition:', error);
+            console.error("Error during chapter transition:", error);
+            setError(`Failed to auto-play next chapter. Error: ${error.message}`);
+            setIsPlaying(false);
+          } finally {
+            setIsChapterLoading(false);
           }
-  
-          // Play the next chapter
-          playChapter(currentChapter + 1);
         } else {
+          // No more chapters available
+          console.log("Reached end of audiobook");
           setIsPlaying(false);
         }
       };
-  
+
+      // Add event listener for chapter end
       audioElement.addEventListener("ended", handleEnded);
+
+      // Cleanup function
       return () => {
         audioElement.removeEventListener("ended", handleEnded);
       };
     }
   }, [audioElement, currentChapter, chapters]);
+
 
   useEffect(() => {
     if (answerAudioSrc) {
@@ -351,16 +395,16 @@ const AudioPlayer = () => {
       const seekPosition = (e.clientX - rect.left) / rect.width;
       const newTime = seekPosition * duration;
       
+      // Update audio time
       audioElement.currentTime = newTime;
       setCurrentTime(newTime);
       
-      // Ensure audio is playing after seeking
-      if (!isPlaying) {
+      // Ensure audio is playing after seeking if it was already playing
+      if (isPlaying) {
         audioElement.play().catch((e) => {
           console.error("Failed to play audio after seeking:", e);
           setError(`Failed to play audio. Error: ${e.message}`);
         });
-        setIsPlaying(true);
       }
     }
   };
@@ -446,14 +490,64 @@ const AudioPlayer = () => {
     }
   };
 
-
+  useEffect(() => {
+    return () => {
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.src = '';
+        audioElement.load();
+      }
+    };
+  }, [audioElement]);
   
 
+
+  
+  useEffect(() => {
+    if (audioElement) {
+      const handleLoadedMetadata = () => {
+        console.log("Audio duration updated:", audioElement.duration);
+        setDuration(audioElement.duration);
+      };
+
+      const handleTimeUpdate = () => {
+        console.log("Current time updated:", audioElement.currentTime);
+        setCurrentTime(audioElement.currentTime);
+      };
+
+      // Add event listeners
+      audioElement.addEventListener("loadedmetadata", handleLoadedMetadata);
+      audioElement.addEventListener("timeupdate", handleTimeUpdate);
+
+      // Set initial duration once metadata is loaded
+      if (audioElement.duration) {
+        setDuration(audioElement.duration);
+      }
+
+      // Cleanup function
+      return () => {
+        audioElement.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        audioElement.removeEventListener("timeupdate", handleTimeUpdate);
+      };
+    }
+  }, [audioElement]); 
+
   const playChapter = async (index) => {
-    // Send event for manual chapter selection
-    const email = localStorage.getItem('plutoemail') || 'anonymous';
+    if (isChapterLoading) return;
+    if (currentChapter === index && isPlaying) return;
     
+    setIsChapterLoading(true);
+    
+    // Clean up existing audio
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.src = '';
+      audioElement.load();
+    }
+  
     try {
+      // Log the event
+      const email = localStorage.getItem('plutoemail') || 'anonymous';
       await fetch('https://contractus.co.in/event', {
         method: 'POST',
         headers: {
@@ -464,30 +558,44 @@ const AudioPlayer = () => {
           Chapter: index
         })
       });
-      console.log('Chapter selection event logged successfully');
-    } catch (error) {
-      console.error('Failed to log chapter selection:', error);
-    }
   
-    // Existing playChapter logic
-    if (audioElement) {
-      audioElement.pause();
+      // Create new audio element
+      const newAudio = new Audio();
+      
+      // Set up promise to handle audio loading
+      const audioLoadPromise = new Promise((resolve, reject) => {
+        newAudio.oncanplaythrough = resolve;
+        newAudio.onerror = reject;
+      });
+  
+      // Reset state before loading new chapter
+      setCurrentTime(0);
+      setDuration(0);
+      
+      // Set the source and start loading
+      newAudio.src = chapters[index].url;
+      
+      // Wait for audio to be ready
+      await audioLoadPromise;
+      
+      // Update state
+      setCurrentChapter(index);
+      setAudioElement(newAudio);
+      
+      // Start playing
+      await newAudio.play();
+      setIsPlaying(true);
+  
+    } catch (error) {
+      console.error("Failed to play chapter audio:", error);
+      setError(`Failed to play chapter audio. Error: ${error.message}`);
+    } finally {
+      setIsChapterLoading(false);
     }
-    setCurrentChapter(index);
-    const newAudio = new Audio(chapters[index].url);
-    newAudio.onloadedmetadata = () => {
-      setDuration(newAudio.duration);
-    };
-    newAudio.ontimeupdate = () => {
-      setCurrentTime(newAudio.currentTime);
-    };
-    setAudioElement(newAudio);
-    newAudio.play().catch((e) => {
-      console.error("Failed to play chapter audio:", e);
-      setError(`Failed to play chapter audio. Error: ${e.message}`);
-    });
-    setIsPlaying(true);
   };
+
+
+
 
   const handleNextChapter = () => {
     if (currentChapter < chapters.length - 1) {
@@ -696,92 +804,137 @@ const AudioPlayer = () => {
 </div>
 
 {/* Tab Content */}
-{activeTab === 'controls' && (
-            <div className="p-4 h-[65vh] overflow-y-auto">
-              <div className="text-left mb-4 mt-[2vh]">
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  Chapter: 
-                  <span className="text-black font-semibold ml-2">
-                    {chapters[currentChapter]?.title || `Chapter ${currentChapter + 1}`}
-                  </span>
-                </p>
-              </div>
-              <div className="flex items-center mt-[3vh]">
-                <span className="text-xs text-gray-500 w-8">
-                  {formatTime(currentTime)}
-                </span>
-                <div 
-                  ref={progressBarRef}
-                  className="flex-grow mx-2 h-1 bg-gray-300 rounded-full cursor-pointer relative"
-                  onMouseDown={handleProgressBarInteraction}
-                >
-                  <div
-                    className="absolute top-0 left-0 h-1 bg-blue-500 rounded-full"
-                    style={{ width: `${(currentTime / duration) * 100}%` }}
-                  />
-                  <div 
-                    className="absolute top-0 left-0 w-4 h-4 bg-white rounded-full shadow-md -ml-2 -mt-1.5 transform transition-transform hover:scale-125"
-                    style={{ 
-                      left: `${(currentTime / duration) * 100}%`,
-                      cursor: 'pointer'
-                    }}
-                  />
-                </div>
-                <span className="text-xs text-gray-500 w-8 text-right">
-                  {formatTime(duration)}
-                </span>
-              </div>
-
-              <div className="flex justify-center items-center mb-1 mt-4">
-        <div className="flex flex-col items-center">
-          <button
-            onClick={togglePlayPause}
-            className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-black-500 shadow-md hover:shadow-lg transition-shadow mb-2 border-2 border-gray-300"
-          >
-            {isPlaying ? <Pause size={18} fill="black"/> : <Play size={18} fill="black"/>}
-          </button>
-          <span className="text-[11px] text-gray-500">Play</span>
-        </div>
+ {activeTab === 'controls' && (
+    <div className="p-4 h-[65vh] overflow-y-auto">
+      <div className="text-left mb-4 mt-[2vh]">
+        <p className="text-sm text-gray-700 leading-relaxed">
+          Chapter: 
+          <span className="text-black font-semibold ml-2">
+            {chapters[currentChapter]?.title || `Chapter ${currentChapter + 1}`}
+          </span>
+        </p>
       </div>
-
-      <div 
-        onClick={handleElevenLabsClick} 
-        className="mt-2 flex justify-center" 
-        style={{ position: 'relative', zIndex: 10 }}
-      >
-        <div className="w-full max-w-xs" style={{
-          position: 'relative',
-          transform: 'scale(0.65) translateY(2vh)',
-          transformOrigin: 'top center',
-        }}>
-          <ElevenLabsConversation />
+    
+      {isChapterLoading ? (
+        <div className="flex flex-col items-center justify-center space-y-4 mt-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"/>
+          <p className="text-sm text-gray-600">Loading chapter...</p>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="flex items-center mt-[3vh]">
+            <span className="text-xs text-gray-500 w-12 text-right">
+              {formatTime(currentTime)}
+            </span>
+            
+            <div
+              ref={progressBarRef}
+              className="flex-grow mx-2 h-2 bg-gray-300 rounded-full cursor-pointer relative"
+              onMouseDown={handleProgressBarInteraction}
+            >
+              <div
+                className="absolute top-0 left-0 h-2 bg-blue-500 rounded-full"
+                style={{ width: `${(currentTime / duration) * 100}%` }}
+              />
+              <div
+                className="absolute left-0 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform hover:scale-125"
+                style={{
+                  top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  left: `${(currentTime / duration) * 100}%`,
+                  cursor: 'pointer',
+                }}
+              />
             </div>
-          )}
+            
+            <span className="text-xs text-gray-500 w-12 text-left">
+              {formatTime(duration)}
+            </span>
+          </div>
+
+          <div className="flex justify-center items-center space-x-16 mb-1 mt-4">
+            <div className="flex flex-col items-center">
+              <SkipBack 
+                size={16}
+                className={`${currentChapter === 0 ? 'text-gray-300' : 'text-gray-400 hover:text-gray-600 cursor-pointer'} mb-2`}
+                onClick={currentChapter === 0 ? null : handlePreviousChapter}
+              />
+              <span className="text-[9px] text-gray-500">Previous</span>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <button 
+                onClick={togglePlayPause}
+                disabled={isChapterLoading}
+                className={`w-12 h-12 bg-white rounded-full flex items-center justify-center text-black shadow-md transition-shadow mb-2 border-2 border-gray-300 ${
+                  !isChapterLoading ? 'hover:shadow-lg' : 'opacity-50 cursor-not-allowed'
+                }`}
+              >
+                {isPlaying ? (
+                  <Pause size={18} fill="black"/>
+                ) : (
+                  <Play size={18} fill="black"/>
+                )}
+              </button>
+              <span className="text-[11px] text-gray-500">Play</span>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <SkipForward
+                size={16}
+                className={`${currentChapter >= chapters.length - 1 ? 'text-gray-300' : 'text-gray-400 hover:text-gray-600 cursor-pointer'} mb-2`}
+                onClick={currentChapter >= chapters.length - 1 ? null : handleNextChapter}
+              />
+              <span className="text-[9px] text-gray-500">Next</span>
+            </div>
+          </div>
+
+          <div 
+            onClick={handleElevenLabsClick} 
+            className="mt-2 flex justify-center" 
+            style={{ position: 'relative', zIndex: 10 }}
+          >
+            <div className="w-full max-w-xs" style={{
+              position: 'relative',
+              transform: 'scale(0.65) translateY(2vh)',
+              transformOrigin: 'top center',
+            }}>
+              <ElevenLabsConversation />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )}
+
 
 {activeTab === 'chapters' && (
  <div className="p-4 h-[65vh] overflow-y-auto custom-scrollbar">
-    {chapters.map((chapter, index) => (
-      <div
-        key={index}
-        onClick={() => playChapter(index)}
-        className={`py-2 sm:py-2.5 border-b border-gray-200 first:border-t ${
-          currentChapter === index ? "bg-gray-50" : ""
-        } cursor-pointer transition-colors`}
-      >
-        <div className="px-2">
-          <p className="text-xs text-gray-400 mb-0.5">
-            Chapter {index}
-          </p>
-          <p className={`text-sm text-gray-900 ${
-            currentChapter === index ? "font-bold" : ""
-          }`}>
-            {chapter.title || `Chapter ${index + 1}`}
-          </p>
-        </div>
+{chapters.map((chapter, index) => (
+  <div
+    key={index}
+    onClick={() => !isChapterLoading && playChapter(index)}
+    className={`py-2 sm:py-2.5 border-b border-gray-200 first:border-t ${
+      currentChapter === index ? "bg-gray-50" : ""
+    } cursor-pointer transition-colors ${isChapterLoading ? "opacity-50 pointer-events-none" : ""}`}
+  >
+    <div className="px-2 flex justify-between items-center">
+      <div>
+        <p className="text-xs text-gray-400 mb-0.5">
+          Chapter {index}
+        </p>
+        <p className={`text-sm text-gray-900 ${
+          currentChapter === index ? "font-bold" : ""
+        }`}>
+          {chapter.title || `Chapter ${index + 1}`}
+        </p>
       </div>
-    ))}
+      {isChapterLoading && currentChapter === index && (
+        <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"/>
+      )}
+    </div>
+  </div>
+))}
   </div>
 )}
 
