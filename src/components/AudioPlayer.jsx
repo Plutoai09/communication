@@ -204,7 +204,7 @@ const [duration, setDuration] = useState(0);
 
         console.log(data)
         if (data.chapters && data.chapters.length > 0) {
-          setAudioSrc(updatedChapters[0].url);
+          setAudioSrc(data.chapters[0].url);
         } else {
           throw new Error("No chapters found in the response");
         }
@@ -216,7 +216,7 @@ const [duration, setDuration] = useState(0);
         setAuthorImageSrc(data.authorImageSrc);
         setAuthorName(data.authorName);
         setPersona(data.persona);
-        setChapters(updatedChapters);
+        setChapters(data.chapters);
         setError("");
       } catch (error) {
         console.error("Error fetching audiobook:", error);
@@ -539,7 +539,7 @@ const [duration, setDuration] = useState(0);
       };
 
       const handleTimeUpdate = () => {
-     
+      
         setCurrentTime(audioElement.currentTime);
       };
 
@@ -560,59 +560,59 @@ const [duration, setDuration] = useState(0);
     }
   }, [audioElement]); 
 
-  const playChapter = async (index) => {
-    if (isChapterLoading || currentChapter === index) return;
-    
-    setIsChapterLoading(true);
-    
-    try {
-      // Non-blocking event logging
-      const email = localStorage.getItem('plutoemail') || 'anonymous';
-      fetch('https://contractus.co.in/event', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, Chapter: index })
-      });
+const playChapter = async (index) => {
+  if (isChapterLoading || currentChapter === index) return;
   
-      // Stop current audio immediately
-      if (audioElement) {
-        audioElement.pause();
-        audioElement.src = '';
-      }
+  setIsChapterLoading(true);
   
-      // Preload next and previous chapters in background
-      const preloadChapters = [
-        chapters[index - 1]?.url, 
-        chapters[index]?.url, 
-        chapters[index + 1]?.url
-      ].filter(Boolean);
-  
-      // Create new audio with optimized loading
-      const newAudio = new Audio(chapters[index].url);
-      
-      // Simplify audio loading
-      await new Promise((resolve, reject) => {
-        newAudio.oncanplaythrough = resolve;
-        newAudio.onerror = reject;
-        newAudio.load();
-      });
-  
-      // Update state
-      setCurrentChapter(index);
-      setCurrentTime(0);
-      setAudioElement(newAudio);
-  
-      // Start playing
-      await newAudio.play();
-      setIsPlaying(true);
-  
-    } catch (error) {
-      console.error("Chapter play failed:", error);
-      setError(`Chapter load error: ${error.message}`);
-    } finally {
-      setIsChapterLoading(false);
+  try {
+    // Non-blocking event logging
+    const email = localStorage.getItem('plutoemail') || 'anonymous';
+    fetch('https://contractus.co.in/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, Chapter: index })
+    });
+
+    // Stop current audio immediately
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.src = '';
     }
-  };
+
+    // Preload next and previous chapters in background
+    const preloadChapters = [
+      chapters[index - 1]?.url, 
+      chapters[index]?.url, 
+      chapters[index + 1]?.url
+    ].filter(Boolean);
+
+    // Create new audio with optimized loading
+    const newAudio = new Audio(chapters[index].url);
+    
+    // Simplify audio loading
+    await new Promise((resolve, reject) => {
+      newAudio.oncanplaythrough = resolve;
+      newAudio.onerror = reject;
+      newAudio.load();
+    });
+
+    // Update state
+    setCurrentChapter(index);
+    setCurrentTime(0);
+    setAudioElement(newAudio);
+
+    // Start playing
+    await newAudio.play();
+    setIsPlaying(true);
+
+  } catch (error) {
+    console.error("Chapter play failed:", error);
+    setError(`Chapter load error: ${error.message}`);
+  } finally {
+    setIsChapterLoading(false);
+  }
+};
 
 
 
