@@ -539,7 +539,7 @@ const [duration, setDuration] = useState(0);
       };
 
       const handleTimeUpdate = () => {
-        console.log("Current time updated:", audioElement.currentTime);
+     
         setCurrentTime(audioElement.currentTime);
       };
 
@@ -561,68 +561,58 @@ const [duration, setDuration] = useState(0);
   }, [audioElement]); 
 
   const playChapter = async (index) => {
-    if (isChapterLoading) return;
-    if (currentChapter === index && isPlaying) return;
+    if (isChapterLoading || currentChapter === index) return;
     
     setIsChapterLoading(true);
     
-    // Clean up existing audio
-    if (audioElement) {
-      audioElement.pause();
-      audioElement.src = '';
-      audioElement.load();
-    }
-  
     try {
-      // Log the event
+      // Non-blocking event logging
       const email = localStorage.getItem('plutoemail') || 'anonymous';
-      await fetch('https://contractus.co.in/event', {
+      fetch('https://contractus.co.in/event', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email,
-          Chapter: index
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, Chapter: index })
       });
   
-      // Create new audio element
-      const newAudio = new Audio();
+      // Stop current audio immediately
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.src = '';
+      }
+  
+      // Preload next and previous chapters in background
+      const preloadChapters = [
+        chapters[index - 1]?.url, 
+        chapters[index]?.url, 
+        chapters[index + 1]?.url
+      ].filter(Boolean);
+  
+      // Create new audio with optimized loading
+      const newAudio = new Audio(chapters[index].url);
       
-      // Set up promise to handle audio loading
-      const audioLoadPromise = new Promise((resolve, reject) => {
+      // Simplify audio loading
+      await new Promise((resolve, reject) => {
         newAudio.oncanplaythrough = resolve;
         newAudio.onerror = reject;
+        newAudio.load();
       });
   
-      // Reset state before loading new chapter
-      setCurrentTime(0);
-      setDuration(0);
-      
-      // Set the source and start loading
-      console.log(chapters[index].url)
-      newAudio.src = chapters[index].url;
-      
-      // Wait for audio to be ready
-      await audioLoadPromise;
-      
       // Update state
       setCurrentChapter(index);
+      setCurrentTime(0);
       setAudioElement(newAudio);
-      
+  
       // Start playing
       await newAudio.play();
       setIsPlaying(true);
   
     } catch (error) {
-      console.error("Failed to play chapter audio:", error);
-      setError(`Failed to play chapter audio. Error: ${error.message}`);
+      console.error("Chapter play failed:", error);
+      setError(`Chapter load error: ${error.message}`);
     } finally {
       setIsChapterLoading(false);
     }
   };
-
 
 
 
