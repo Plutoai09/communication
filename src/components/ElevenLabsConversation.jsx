@@ -41,9 +41,28 @@ const ElevenLabsConversation = () => {
 
   const { status, isSpeaking } = conversation;
 
+  const handleCleanup = () => {
+    setIsCleaningUp(true);
+    setIsActive(false);
+    setTimeout(() => {
+      setIsCleaningUp(false);
+    }, 500);
+  };
+
   const requestMicPermission = async () => {
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Directly request microphone access with more detailed constraints
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl: { ideal: true }
+        }
+      });
+  
+      // Immediately stop tracks to release microphone
+      stream.getTracks().forEach(track => track.stop());
+  
       setIsMicAllowed(true);
       setShowMicPrompt(false);
       return true;
@@ -54,6 +73,13 @@ const ElevenLabsConversation = () => {
       return false;
     }
   };
+
+  const handleMicPermissionPrompt = () => {
+    // If browser settings can't be opened, guide user
+    alert('Please go to your browser settings:\n1. Open browser settings\n2. Find Privacy or Site Settings\n3. Enable Microphone permissions');
+  };
+
+
 
   const handleToggleCall = async () => {
     if (isActive) {
@@ -68,6 +94,8 @@ const ElevenLabsConversation = () => {
     } else {
       try {
         setIsInitializing(true);
+        
+        // Request mic permission directly on Ask button click
         const micPermissionGranted = await requestMicPermission();
         
         if (!micPermissionGranted) {
@@ -90,11 +118,6 @@ const ElevenLabsConversation = () => {
     }
   };
 
-  const handleMicPermissionPrompt = () => {
-    // Open browser's mic settings or prompt
-    window.open('chrome://settings/content/microphone', '_blank');
-  };
-
   const isConnected = status === 'connected' && isActive;
 
   const getStatusText = () => {
@@ -110,7 +133,7 @@ const ElevenLabsConversation = () => {
         <div className="absolute inset-0 z-10 bg-white/90 flex flex-col items-center justify-center p-4 rounded-3xl">
           <Mic size={48} className="text-gray-700 mb-4" />
           <p className="text-center text-gray-900 mb-4">
-            Microphone access is required to continue. Please enable microphone permissions in your browser settings.
+            Microphone access is required to continue. Please enable microphone permissions.
           </p>
           <div className="flex space-x-2">
             <button
@@ -129,6 +152,7 @@ const ElevenLabsConversation = () => {
         </div>
       )}
 
+      {/* Rest of the component remains the same */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-4">
         <div className="flex gap-4">
           <div className="relative w-16 h-16">
