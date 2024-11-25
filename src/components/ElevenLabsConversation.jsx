@@ -4,7 +4,6 @@ import { PhoneCall, XCircle, Mic } from 'lucide-react';
 
 const ElevenLabsConversation = () => {
   const [isMicAllowed, setIsMicAllowed] = useState(false);
-  const [showMicPrompt, setShowMicPrompt] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -49,38 +48,6 @@ const ElevenLabsConversation = () => {
     }, 500);
   };
 
-  const requestMicPermission = async () => {
-    try {
-      // Directly request microphone access with more detailed constraints
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: { ideal: true },
-          noiseSuppression: { ideal: true },
-          autoGainControl: { ideal: true }
-        }
-      });
-  
-      // Immediately stop tracks to release microphone
-      stream.getTracks().forEach(track => track.stop());
-  
-      setIsMicAllowed(true);
-      setShowMicPrompt(false);
-      return true;
-    } catch (error) {
-      console.error('Microphone access denied:', error);
-      setIsMicAllowed(false);
-      setShowMicPrompt(true);
-      return false;
-    }
-  };
-
-  const handleMicPermissionPrompt = () => {
-    // If browser settings can't be opened, guide user
-    alert('Please go to your browser settings:\n1. Open browser settings\n2. Find Privacy or Site Settings\n3. Enable Microphone permissions');
-  };
-
-
-
   const handleToggleCall = async () => {
     if (isActive) {
       try {
@@ -91,30 +58,25 @@ const ElevenLabsConversation = () => {
         console.error('Failed to end conversation:', error);
         handleCleanup();
       }
-    } else {
-      try {
-        setIsInitializing(true);
-        
-        // Request mic permission directly on Ask button click
-        const micPermissionGranted = await requestMicPermission();
-        
-        if (!micPermissionGranted) {
-          setIsInitializing(false);
-          return;
-        }
+      return;
+    }
 
-        setIsActive(true);
-        const conversationId = await conversation.startSession({
-          agentId: 'gjXeuTR2Uf25WNrBWeul',
-        });
-        console.log('Started conversation with ID:', conversationId);
-        setIsInitializing(false);
-      } catch (error) {
-        console.error('Failed to start conversation:', error);
-        setIsActive(false);
-        setIsInitializing(false);
-        handleCleanup();
-      }
+    try {
+      // Request mic permission using default browser popup
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      setIsInitializing(true);
+      setIsActive(true);
+      const conversationId = await conversation.startSession({
+        agentId: 'gjXeuTR2Uf25WNrBWeul',
+      });
+      console.log('Started conversation with ID:', conversationId);
+      setIsInitializing(false);
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+      setIsActive(false);
+      setIsInitializing(false);
+      handleCleanup();
     }
   };
 
@@ -129,30 +91,6 @@ const ElevenLabsConversation = () => {
 
   return (
     <div className="w-full max-w-sm relative">
-      {showMicPrompt && (
-        <div className="absolute inset-0 z-10 bg-white/90 flex flex-col items-center justify-center p-4 rounded-3xl">
-          <Mic size={48} className="text-gray-700 mb-4" />
-          <p className="text-center text-gray-900 mb-4">
-            Microphone access is required to continue. Please enable microphone permissions.
-          </p>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setShowMicPrompt(false)}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-full"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleMicPermissionPrompt}
-              className="px-4 py-2 bg-black text-white rounded-full"
-            >
-              Open Settings
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Rest of the component remains the same */}
       <div className="bg-white rounded-3xl shadow-sm border border-gray-200 p-4">
         <div className="flex gap-4">
           <div className="relative w-16 h-16">
