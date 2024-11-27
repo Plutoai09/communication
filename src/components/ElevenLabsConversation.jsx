@@ -68,7 +68,7 @@ const ElevenLabsConversation = () => {
       setIsInitializing(true);
       setIsActive(true);
       const conversationId = await conversation.startSession({
-        agentId: 'gjXeuTR2Uf25WNrBWeul',
+        agentId: 't1zHRZvjzxLCKjELdvbm',
       });
       console.log('Started conversation with ID:', conversationId);
       setIsInitializing(false);
